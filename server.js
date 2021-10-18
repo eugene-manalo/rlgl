@@ -65,7 +65,7 @@ app.get('/gameStatus', function(req,res) {
   res.send(status)
 })
 
-server.listen(80, function () {
+server.listen(8080, function () {
   console.log(`Listening on ${server.address().port}`);
 });
 
