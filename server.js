@@ -74,9 +74,6 @@ server.listen(3000, function () {
 io.on('connection', function (socket) {
   console.log('a user connected');
 
-  // createNewPlayer(players, socket, status, light);
-  // console.log(players);
-
   socket.on('register', function (number) {
     if(number && dcPlayers[number]) {
       console.log('reconnectPlayer')
@@ -103,10 +100,8 @@ io.on('connection', function (socket) {
     players[socket.id].boardX = movementData.boardX;
     players[socket.id].boardY = movementData.boardY;
     // emit a message to all players about the player that moved
-    console.log(players[socket.id]);
-
     const moveStr = `${movementData.boardX},${movementData.boardY}`
-    console.log(moveStr)
+    console.log(players[socket.id].number, moveStr)
     if(status === START) {
       if(bombs.includes(moveStr)) {
         console.log('die');

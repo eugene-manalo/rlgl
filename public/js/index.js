@@ -1,9 +1,11 @@
 var scenes = []
 if(localStorage.getItem('playerNumber')) {
-  scenes = [GameScene]
+  scenes = [GameScene, ChooseScene]
 } else {
   scenes = [ChooseScene, GameScene]
 }
+
+// scenes = [ChooseScene, GameScene]
 
 var config = {
   type: Phaser.AUTO,

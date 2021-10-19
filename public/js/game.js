@@ -35,6 +35,10 @@ function preload() {
   this.load.image('green-light', 'assets/green-light.png');
   this.load.image('explosion', 'assets/explosion.png');
   this.load.image('eks', 'assets/eks.png');
+
+  this.load.image('eye', 'assets/eye.png');
+  this.load.image('question', 'assets/question.png'); 
+  this.load.image('warning', 'assets/warning.png');
 }
 
 function create() {
@@ -53,6 +57,18 @@ function create() {
   greenLight.setScale(1.5)
 
   timerText = self.add.text(15, 20, '3:00', { fontSize: '22px', color: '#ffffff', stroke: '#000000', strokeThickness: 2})
+
+  this.add.image(250, 0, 'eye').setAlpha(.3)
+  this.add.image(390, 0, 'question').setAlpha(.3)
+  this.add.image(540, 0, 'warning').setAlpha(.3)
+
+  this.add.image(0, 200, 'eye').setAlpha(.3)
+  this.add.image(0, 400, 'question').setAlpha(.3)
+  this.add.image(0, 600, 'warning').setAlpha(.3)
+
+  this.add.image(800, 200, 'eye').setAlpha(.3)
+  this.add.image(800, 400, 'question').setAlpha(.3)
+  this.add.image(800, 600, 'warning').setAlpha(.3)
 
   this.socket.on('connect', () => {
     var playerNumber = localStorage.getItem('playerNumber')
@@ -244,18 +260,6 @@ function update() {
       displayBomb(this, topLeft, x, y, -32, -32)
       var topRight = `${bX+1},${bY-1}`
       displayBomb(this, topRight, x, y, 32, -32)
-  
-      // var topRight = `${this.me.boardX+1},${this.me.boardY-1}`
-      // if(boardConfig.bombs.includes(topRight) && !bombViewed.includes(topRight)) {
-      //   var exclamation = this.add.text(x+32, y-32, '!', {color: "#ff0000", fontSize: '20px'})
-      //   exclamation.setOrigin(.5,.5)
-      //   bombViewed.push(topRight)
-      //   exclamation.destroy()
-      //   // setTimeout(()=> {
-      //   //   console.log('destroy excl')
-      //   //   exclamation.destroy()
-      //   // }, 1)
-      // }
     }
 
     // save old position data
