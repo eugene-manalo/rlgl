@@ -15,7 +15,7 @@ const startingPoint = {
   y: (32 * 20) + (50 - 16)
 }
 
-const createNewPlayer = (players, socket, status, light) => {
+const createNewPlayer = (players, socket, status, light, gameId) => {
   var number;
   var keys = Object.keys(players);
   var count = keys.length
@@ -35,7 +35,8 @@ const createNewPlayer = (players, socket, status, light) => {
     boardY: 20,
     bombs,
     gameStatus: status,
-    gameLight: light
+    gameLight: light,
+    gameId,
   }
 
   // send the players object to the new player
@@ -44,13 +45,14 @@ const createNewPlayer = (players, socket, status, light) => {
   socket.broadcast.emit('newPlayer', players[socket.id]);
 }
 
-const reconnectPlayer = function(players, dcPlayers, number, socket, status, light) {
+const reconnectPlayer = function(players, dcPlayers, number, socket, status, light, gameId) {
   var retrievedData = dcPlayers[number]
 
   players[socket.id] = retrievedData
   players[socket.id].playerId = socket.id
   players[socket.id].gameStatus = status
   players[socket.id].gameLight = light
+  players[socket.id].gameId = gameId
 
   // send the players object to the new player
   socket.emit('currentPlayers', players);

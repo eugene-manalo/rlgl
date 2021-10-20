@@ -28,6 +28,8 @@ var startingPoint = {
 var timerText;
 var bombViewed = []
 
+var rlglSound, mineSound, laserSound;
+
 function preload() {
   this.load.image('board', 'assets/board.png');
   this.load.image('player', 'assets/player.png');
@@ -39,6 +41,10 @@ function preload() {
   this.load.image('eye', 'assets/eye.png');
   this.load.image('question', 'assets/question.png'); 
   this.load.image('warning', 'assets/warning.png');
+
+  this.load.audio('rlgl', 'assets/rlgl.mp3')
+  this.load.audio('mine', 'assets/mine.mp3')
+  this.load.audio('laser', 'assets/laser.mp3')
 }
 
 function create() {
@@ -70,9 +76,16 @@ function create() {
   this.add.image(800, 400, 'question').setAlpha(.3)
   this.add.image(800, 600, 'warning').setAlpha(.3)
 
+  rlglSound = this.sound.add('rlgl')
+  rlglSound.setVolume(.02)
+  mineSound = this.sound.add('mine')
+  laserSound = this.sound.add('laser')
+  laserSound.setRate(2)
+
   this.socket.on('connect', () => {
     var playerNumber = localStorage.getItem('playerNumber')
-    this.socket.emit('register', playerNumber)
+    var gameId = localStorage.getItem('gameId')
+    this.socket.emit('register', { number: playerNumber, gameId })
   })
 
   this.socket.on('currentPlayers', function (players) {
@@ -118,8 +131,10 @@ function create() {
           } else if(playerInfo.reason == 'bomb' && self.me.shape === CIRCLE) {
             var explode = self.add.image(playerInfo.x, playerInfo.y, 'explosion')
             explode.setScale(.5, .5)
+            mineSound.play()
             setTimeout(() => {
               explode.destroy()
+              mineSound.stop()
             }, 3000)
           }
         }
@@ -236,6 +251,9 @@ function update() {
       console.log('die')
       var explode = this.add.image(this.me.x, this.me.y, 'explosion')
       explode.setScale(.5, .5)
+      mineSound.play()
+
+      setTimeout(() => mineSound.stop(), 3000)
     }
     // emit player movement
     var x = this.me.x;
@@ -285,7 +303,7 @@ function displayBomb(self, coordString, x, y, xAdd, yAdd) {
 }
 
 function addPlayer(self, playerInfo) {
-  console.log('addPlayer')
+  localStorage.setItem('gameId', playerInfo.gameId)
   self.me = self.add.container(playerInfo.x, playerInfo.y);
   var player = self.add.image(0, 0, 'player');
   var num = self.add.text(0, 0, playerInfo.number);
@@ -296,7 +314,6 @@ function addPlayer(self, playerInfo) {
   self.me.number = playerInfo.number
 
   self.me.shape = playerShape
-  console.log('self.me.shape', self.me.shape)
   localStorage.setItem('playerNumber', playerInfo.number)
 
   question = self.add.text(0,-20,'???', {color: "#ff0000"})
@@ -307,7 +324,9 @@ function addPlayer(self, playerInfo) {
   self.me.add(question)
   self.me.setDepth(1000);
   
-
+  if(playerInfo.die) {
+    die(self)
+  }
 
   // board status
   boardConfig.bombs = playerInfo.bombs;
@@ -342,10 +361,12 @@ function toggleLight(self, forceLight) {
     blinkLight(self, greenLight, 'green-light')
     redLight.setAlpha(.6)
     greenLight.setAlpha(1)
+    rlglSound.play()
   } else if(light === RED || forceLight === RED) {
     blinkLight(self, redLight, 'red-light')
     redLight.setAlpha(1)
     greenLight.setAlpha(.6)
+    rlglSound.stop()
   }
 }
 
@@ -399,9 +420,11 @@ function laser(self, x, y) {
 
   graphics.closePath();
   graphics.strokePath();
+  laserSound.play()
 
   setTimeout(() => {
     graphics.destroy()
+    laserSound.stop()
   }, 1500)
 }
 

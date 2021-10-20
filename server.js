@@ -14,6 +14,7 @@ var dcPlayers = {}
 var status = WAITING;
 var light = RED;
 var interval;
+var GAME_ID = Math.random()
 
 app.use(express.static(__dirname + '/public'));
 app.get('/', function (req, res) {
@@ -66,7 +67,7 @@ app.get('/gameStatus', function(req,res) {
 })
 
 server.listen(3000, function () {
-  console.log(`Listening on ${server.address().port}`);
+  console.log(`Listening on ${server.address().port}. Game id: ${GAME_ID}`);
 });
 
 
@@ -74,14 +75,15 @@ server.listen(3000, function () {
 io.on('connection', function (socket) {
   console.log('a user connected');
 
-  socket.on('register', function (number) {
-    if(number && dcPlayers[number]) {
+  socket.on('register', function ({number, gameId}) {
+    console.log(number, gameId)
+    if(number && dcPlayers[number] && gameId == GAME_ID) {
       console.log('reconnectPlayer')
       // reconnect player
-      reconnectPlayer(players, dcPlayers, number, socket, status, light)
+      reconnectPlayer(players, dcPlayers, number, socket, status, light, GAME_ID)
     } else {
       console.log('createNewPlayer')
-      createNewPlayer(players, socket, status, light);
+      createNewPlayer(players, socket, status, light, GAME_ID);
     }
   })
 
@@ -113,6 +115,10 @@ io.on('connection', function (socket) {
         players[socket.id].die = true
         players[socket.id].reason = 'red'
         io.to(socket.id).emit('youAreDead', 'red')
+      }
+
+      if(players[socket.id].die) {
+        console.log(`Number ${players[socket.id].number} is dead.`)
       }
     }
 
