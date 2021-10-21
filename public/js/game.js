@@ -31,6 +31,41 @@ var bombViewed = []
 var rlglSound, mineSound, laserSound;
 
 function preload() {
+  var progressBar = this.add.graphics();
+  var progressBox = this.add.graphics();
+  progressBox.fillStyle(0x222222, 0.8);
+  progressBox.fillRect(240, 270, 320, 50);
+
+  var width = this.cameras.main.width;
+  var height = this.cameras.main.height;
+  var loadingText = this.make.text({
+      x: width / 2,
+      y: height / 2 - 50,
+      text: 'Loading...',
+      style: {
+          font: '20px monospace',
+          fill: '#ffffff'
+      }
+  });
+  loadingText.setOrigin(0.5, 0.5);
+  
+  this.load.on('progress', function (value) {
+    console.log(value);
+    progressBar.clear();
+    progressBar.fillStyle(0xffffff, 1);
+    progressBar.fillRect(250, 280, 300 * value, 30);
+  });
+              
+  this.load.on('fileprogress', function (file) {
+    console.log(file.src);
+  });
+  this.load.on('complete', function () {
+    console.log('complete');
+    progressBar.destroy();
+    progressBox.destroy();
+    loadingText.destroy();
+  });
+
   this.load.image('board', 'assets/board.png');
   this.load.image('player', 'assets/player.png');
   this.load.image('red-light', 'assets/red-light.png');
