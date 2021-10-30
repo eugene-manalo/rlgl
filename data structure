@@ -1,0 +1,17 @@
+room_1234: [WAIT, START, END]
+
+bombs_1234: ["9,9", "8,9",...]
+light_1234: RED,GREEN
+
+player_1234: {
+  number: 123,
+  die: true,
+  boardX: 0,
+  boardY: 0,
+  x: 0,
+  y:0,
+  name
+}
+
+
+npx babel --watch src --out-dir ./public/js/ --presets react-app/prod

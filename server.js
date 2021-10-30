@@ -3,6 +3,8 @@ var app = express();
 var server = require('http').Server(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+const { createRoom } = require('./service/redis')
+
 
 const { createNewPlayer, reconnectPlayer } = require('./utils/player');
 const { bombs } = require('./utils/board')
@@ -21,7 +23,20 @@ app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/checkRoom/:roomId', function(req, res) {
+  console.log(req.params)
+  res.send(JSON.stringify({
+    roomId: req.params.roomId + '1234'
+  }))
+})
+
 var countdown;
+
+app.post('/createRoom', async function (req, res) {
+  console.log('creating a room')
+  const room = await createRoom(req.userId)
+  res.send(JSON.stringify(room))
+})
 
 // admin
 app.use('/admin/*', function(req, resp, next){
