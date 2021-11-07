@@ -30,7 +30,7 @@ var GameScene = new Phaser.Class({
     .then(resp => resp.json())
     .then(data => {
       this.roomObj = data
-      if (data && data.owner === playerId && data.status === STARTED) {
+      if (data && data.status === STARTED) {
         yLimit = -1
       }
     })
@@ -241,12 +241,11 @@ var GameScene = new Phaser.Class({
           otherPlayer.boardX = otherX
           otherPlayer.boardY = otherY
 
-          // TODO: die
           if(playerInfo.die) {
-            addEks(otherPlayer)
+            this.addEks(otherPlayer)
 
             if(playerInfo.reason === RED) {
-              laser(x, y)
+              this.laser(x, y)
             } else if(playerInfo.reason === 'BOMB') {
               const explode = this.add.image(x, y, 'explosion')
               explode.setScale(.7, .7)
@@ -333,10 +332,14 @@ var GameScene = new Phaser.Class({
     this.me.add(num)
     this.me.add(question)
     this.me.setDepth(1000)
+
+    if(die) {
+      this.die()
+    }
   },
 
   addOtherPlayers: function(playerInfo) {
-    const { boardX, boardY, number, playerId, shape } = playerInfo
+    const { boardX, boardY, number, playerId, shape, die } = playerInfo
     const { x, y } = this.getGameAxis(boardX, boardY)
     const otherPlayer = this.add.container(x, y)
 
@@ -351,6 +354,10 @@ var GameScene = new Phaser.Class({
     otherPlayer.boardX = boardX
     otherPlayer.boardY = boardY
     otherPlayer.number = number
+
+    if(die) {
+      this.addEks(otherPlayer)
+    }
 
     this.otherPlayers.add(otherPlayer)
   },

@@ -131,11 +131,11 @@ io.on('connection', socket => {
 
     if(room.status === STARTED) {
       if(room.light === RED) {
-        // logger.info('a player died from red light:', playerInfo.number)
-        // playerInfo.die = true
-        // playerInfo.reason = RED
-        // await patchPlayerByRoom(playerId, roomId, { die: true, reason: RED })
-        // io.to(socket.id).emit('youAreDead', RED)
+        logger.info('a player died from red light:', playerInfo.number)
+        playerInfo.die = true
+        playerInfo.reason = RED
+        await patchPlayerByRoom(playerId, roomId, { die: true, reason: RED })
+        io.to(socket.id).emit('youAreDead', RED)
       } else if(room.bombs.includes(moveStr)) {
         const BOMB = 'BOMB'
         playerInfo.die = true
