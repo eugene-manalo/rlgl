@@ -1,8 +1,5 @@
 const GREEN = 'GREEN', RED = 'RED'
-const START = "START", WAITING = 'WAITING', END = 'END';
 const CIRCLE = 'CIRCLE', TRIANGLE = 'TRIANGLE', SQUARE = 'SQUARE'
-
-let playerShape = localStorage.getItem('playerShape') || ''
 
 var ChooseScene = new Phaser.Class({
   Extends: Phaser.Scene,
@@ -11,13 +8,13 @@ var ChooseScene = new Phaser.Class({
   },
   preload: function() {
     console.log('preload Choose')
-    this.load.image('circle', 'assets/circle.png');
-    this.load.image('triangle', 'assets/triangle.png');
-    this.load.image('square', 'assets/square.png');
+    this.load.image('circle', '/assets/circle.png');
+    this.load.image('triangle', '/assets/triangle.png');
+    this.load.image('square', '/assets/square.png');
 
-    this.load.image('eye', 'assets/eye.png');
-    this.load.image('question', 'assets/question.png'); 
-    this.load.image('warning', 'assets/warning.png');
+    this.load.image('eye', '/assets/eye.png');
+    this.load.image('question', '/assets/question.png'); 
+    this.load.image('warning', '/assets/warning.png');
   },
   create: function() {
     var xOffset = 260
@@ -68,9 +65,10 @@ var ChooseScene = new Phaser.Class({
     circle.on('pointerup', function (pointer) {
       this.clearTint();
       if(shapeSelected === CIRCLE) {
-        playerShape = CIRCLE
-        localStorage.setItem('playerShape',CIRCLE)
-        self.scene.start('gameScene')
+        self.updateShape(CIRCLE)
+        // playerShape = CIRCLE
+        // localStorage.setItem('playerShape',CIRCLE)
+        // self.scene.start('gameScene')
       }
     });
 
@@ -87,9 +85,7 @@ var ChooseScene = new Phaser.Class({
     triangle.on('pointerup', function (pointer) {
       this.clearTint();
       if(shapeSelected === TRIANGLE) {
-        playerShape = TRIANGLE
-        localStorage.setItem('playerShape',TRIANGLE)
-        self.scene.start('gameScene')
+        self.updateShape(TRIANGLE)
       }
     });
 
@@ -106,10 +102,26 @@ var ChooseScene = new Phaser.Class({
     square.on('pointerup', function (pointer) {
       this.clearTint();
       if(shapeSelected === SQUARE) {
-        playerShape = SQUARE
-        localStorage.setItem('playerShape',SQUARE)
-        self.scene.start('gameScene')
+        self.updateShape(SQUARE)
       }
     });
+  },
+
+  updateShape: function (shape) {
+    const { playerId, roomId } = getLocalData()
+    fetch(`/player/${playerId}/room/${roomId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        shape
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data)
+        this.scene.start('gameScene')
+      })
   }
 })

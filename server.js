@@ -3,161 +3,163 @@ var app = express();
 var server = require('http').Server(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const { createRoom } = require('./service/redis')
+const winston = require('winston');
 
-
+const {
+  createRoom,
+  getRoom, 
+  getPlayerByRoom, 
+  patchPlayerByRoom, 
+  initializePlayer, 
+  patchRoom 
+} = require('./service/redis');
+const { WAITING, STARTED, END, RoomTimer } = require('./utils/room');
 const { createNewPlayer, reconnectPlayer } = require('./utils/player');
-const { bombs } = require('./utils/board')
+const { LightToggler, RED } = require('./utils/board');
 
-const START = "START", WAITING = 'WAITING', END = 'END';
-const RED = "RED", GREEN = 'GREEN'
-var players = {};
-var dcPlayers = {}
-var status = WAITING;
-var light = RED;
-var interval;
-var GAME_ID = Math.random()
-
-app.use(express.static(__dirname + '/public'));
-app.get('/', function (req, res) {
-  res.sendFile(__dirname + '/index.html');
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
 });
 
-app.get('/checkRoom/:roomId', function(req, res) {
-  console.log(req.params)
-  res.send(JSON.stringify({
-    roomId: req.params.roomId + '1234'
-  }))
-})
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple(),
+  }));
+}
 
-var countdown;
+app.use(express.json())
+app.use(express.static(__dirname + '/public'));
 
-app.post('/createRoom', async function (req, res) {
-  console.log('creating a room')
-  const room = await createRoom(req.userId)
-  res.send(JSON.stringify(room))
-})
-
-// admin
-app.use('/admin/*', function(req, resp, next){
-  const auth = req.headers['authorization']
-  if(auth !== '$qG1225') {
-    resp.sendStatus(401)
+app.get('/game/:roomId',async function (req, res) {
+  const { roomId } = req.params
+  const { game } = req.query
+  const roomObj = await getRoom(roomId)
+  console.log(game)
+  if(!game) {
+    if(!roomObj) {
+      return res.redirect(`/?game=notFound`)
+    } else if(roomObj.status === END && !game) {
+      return res.redirect(`/?game=end`)
+    }
   }
-  next()
-})
-app.get('/admin/start', function(req, res) {
-  if(status != START) {
-    countdown = 180
-    status = START;
-    light = GREEN
-    io.emit('statusChanged', status)
-    interval = setInterval(() => {
-      if(countdown > 0) {
-        countdown--;
-        io.emit('timer', countdown);
-      } else if(countdown == 0){
-        clearInterval(interval)
-        io.emit('timeout')
-      }
-    },1000)
 
-    
-  } 
-  res.send('started')
-})
-
-app.get('/admin/toggleLight', function(req, res) {
-  if(status === START) {
-    light = light === RED ? GREEN : RED
-    io.emit('lightChanged', light)
-    res.send('lightChanged')
-  } else {
-    res.send('game not yet started')
+  if(roomObj.status === WAITING || roomObj.status === STARTED) {
+    return res.sendFile(__dirname + '/src/game.html');
   }
+});
+
+app.get('/player/:playerId/room/:roomId', async function (req, res) {
+  const { playerId, roomId } = req.params
+  let data = await getPlayerByRoom(playerId, roomId)
+  if(!data) {
+    data = {}
+  }
+  res.send(data)
 })
 
-app.get('/gameStatus', function(req,res) {
-  res.send(status)
+app.patch('/player/:playerId/room/:roomId', async function (req, res) {
+  const { playerId, roomId } = req.params
+  logger.info('patch player', req.params)
+  const updatedData = await patchPlayerByRoom(playerId, roomId, req.body)
+  if (!updatedData) {
+    return res.sendStatus(404)
+  }
+  res.send(updatedData)
+})
+
+app.post('/player/:playerId/room/:roomId', async function (req, res) {
+  const { playerId, roomId } = req.params
+  const player = await initializePlayer(playerId, roomId)
+
+  res.send(player)
+})
+
+app.get('/room/:roomId', async function(req, res) {
+  const { roomId } = req.params
+  const roomObj = await getRoom(roomId)
+  if(!roomObj) return res.sendStatus(404)
+
+  res.send(JSON.stringify(roomObj))
+})
+
+app.post('/room', async function (req, res) {
+  logger.info('creating a room', req.body)
+  const { sessionId } = req.body
+  const room = await createRoom(sessionId)
+  let data = {
+    roomId: room
+  };
+  res.send(JSON.stringify(data))
 })
 
 server.listen(3000, function () {
-  console.log(`Listening on ${server.address().port}. Game id: ${GAME_ID}`);
+  logger.info(`Listening on ${server.address().port}.`);
 });
-
 
 // SOCKET
-io.on('connection', function (socket) {
-  console.log('a user connected');
+io.on('connection', socket => {
+  logger.info('a user is connected')
 
-  socket.on('register', function ({number, gameId}) {
-    console.log(number, gameId)
-    if(number && dcPlayers[number] && gameId == GAME_ID) {
-      console.log('reconnectPlayer')
-      // reconnect player
-      reconnectPlayer(players, dcPlayers, number, socket, status, light, GAME_ID)
+  socket.on('register', async ({ playerId, roomId }) => {
+    logger.info('Registering player', { playerId, roomId })
+    const player = await getPlayerByRoom(playerId, roomId)
+
+    if(!player) return
+
+    if(player.number > 0) {
+      logger.info('Reconnecting player', playerId)
+      await reconnectPlayer(io, socket, playerId, roomId)
+      await socket.join(roomId)
     } else {
-      console.log('createNewPlayer')
-      createNewPlayer(players, socket, status, light, GAME_ID);
+      logger.info('Creating new player', playerId)
+      await createNewPlayer(io, socket, playerId, roomId)
+      await socket.join(roomId)
     }
   })
 
+  socket.on('playerMovement', async movement => {
+    // update player movement
+    const { boardX, boardY, roomId, playerId } = movement
+    const playerInfo = await patchPlayerByRoom(playerId, roomId, { boardX, boardY })
+    const room = await getRoom(roomId)
+    const moveStr = `${boardX},${boardY}`
 
-  socket.on('disconnect', function () {
-    console.log('user disconnected');
-    const playerNum = players[socket.id].number
-    dcPlayers[playerNum] = players[socket.id]
-    delete players[socket.id];
-    io.emit('dc', socket.id);
-  });
-
-  socket.on('playerMovement', function (movementData) {
-    players[socket.id].x = movementData.x;
-    players[socket.id].y = movementData.y;
-    players[socket.id].boardX = movementData.boardX;
-    players[socket.id].boardY = movementData.boardY;
-    // emit a message to all players about the player that moved
-    const moveStr = `${movementData.boardX},${movementData.boardY}`
-    console.log(players[socket.id].number, moveStr)
-    if(status === START) {
-      if(bombs.includes(moveStr)) {
-        console.log('die');
-        players[socket.id].die = true
-        players[socket.id].reason = 'bomb'
-        io.to(socket.id).emit('youAreDead', 'bomb')
-      } else if (light === RED) {
-        console.log('die');
-        players[socket.id].die = true
-        players[socket.id].reason = 'red'
-        io.to(socket.id).emit('youAreDead', 'red')
-      }
-
-      if(players[socket.id].die) {
-        console.log(`Number ${players[socket.id].number} is dead.`)
+    if(room.status === STARTED) {
+      if(room.light === RED) {
+        // logger.info('a player died from red light:', playerInfo.number)
+        // playerInfo.die = true
+        // playerInfo.reason = RED
+        // await patchPlayerByRoom(playerId, roomId, { die: true, reason: RED })
+        // io.to(socket.id).emit('youAreDead', RED)
+      } else if(room.bombs.includes(moveStr)) {
+        const BOMB = 'BOMB'
+        playerInfo.die = true
+        playerInfo.reason = BOMB
+        logger.info('a player died from stepping land mine:', playerInfo.number)
+        await patchPlayerByRoom(playerId, roomId, { die: true, reason: BOMB })
+        io.to(socket.id).emit('youAreDead', BOMB)
       }
     }
 
-
-    if(movementData.boardY === 0) {
-      console.log('win')
-      players[socket.id].win = true
+    if (boardY < 0) {
+      await patchPlayerByRoom(playerId, roomId, { win: true })
+      await patchRoom(roomId, { status: END })
+      io.to(roomId).emit('statusChanged', END)
+      io.emit('winner', playerId)
     }
-    socket.broadcast.emit('playerMoved', players[socket.id]);
 
-    if(players[socket.id].win) {
-      status = END
-      io.emit('statusChanged', END)
-      io.emit('winner', socket.id)
-      clearInterval(interval)
-    }
-  });
+    socket.to(roomId).emit('playerMoved', playerInfo)
+  })
 
-  socket.on('changeStatus', function(stat) {
-    status = stat;
-    if(status === START) {
-      light = GREEN
-    }
-    socket.broadcast.emit('statusChanged', status)
+  socket.on('startGame', async ({ roomId, playerId}) => {
+    await patchRoom(roomId, { status: STARTED })
+    io.to(roomId).emit('statusChanged', STARTED)
+    new RoomTimer(io, roomId)
+    new LightToggler(io, roomId)
   })
 });
-

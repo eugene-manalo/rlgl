@@ -1,0 +1,15 @@
+body {
+  background-color: #4488AA;
+}
+.room-form {
+  text-align: center;
+}
+.room-form div{
+  margin: 10px;
+}
+#home-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 700px;
+}

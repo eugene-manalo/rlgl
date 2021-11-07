@@ -1,34 +1,28 @@
-const bombs = [
-  "0,8",
-  "1,15",
-  "2,15",
-  '3,7',
-  '4,13',
-  '4,14',
-  '4,15',
-  '4,16',
-  '5,12',
-  '6,10',
-  '7,14',
-  '8,12',
-  '9,12',
-  '10,11',
-  '11,15',
-  '12,15',
-  '12,12',
-  '13,8',
-  '13,10',
-  '13,0',
-  '14,15',
-  '15,2',
-  '16,2',
-  '17,2',
-  '18,3',
-  '19,0',
-  '19,8',
-  '19,13'
-]
+const { getRoom, updateRoom } = require('../service/redis')
+const { STARTED } = require('./room')
+const RED = 'RED', GREEN = 'GREEN'
+const MAX_TOGGLE_TIME = 6000
+const MIN_TOGGLE_TIME = 2000
+
+const LightToggler = function (io, roomId) {
+  this.light = RED
+  this.toggle = async () => {
+    const room = await getRoom(roomId)
+    if(room.status === STARTED) {
+      this.light = this.light === GREEN ? RED : GREEN
+      room.light = this.light
+      await updateRoom(roomId, room)
+      io.to(roomId).emit('lightChanged', this.light)
+      const nextToggle = Math.floor(Math.random() * MAX_TOGGLE_TIME) + MIN_TOGGLE_TIME
+      setTimeout(() => {
+        this.toggle()
+      }, nextToggle)
+    }
+  }
+  this.toggle()
+}
 
 module.exports = {
-  bombs
+  LightToggler,
+  RED, GREEN
 }

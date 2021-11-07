@@ -1,67 +1,53 @@
-const { bombs } = require('./board')
+const { getRoom, patchPlayerByRoom, updateRoom, getPlayersByRoom, getPlayerByRoom } = require('../service/redis')
 
-var boardConfig = {
-  size: 32,
-  horizontal: 20,
-  vertical: 20,
-  xPos: (32 * 20) / 2,
-  yPos: (32 * 20) / 2,
-  xOffset: 80,
-  yOffset: 50
+const winston = require('winston');
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'player.log' }),
+  ],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple(),
+  }));
 }
 
-const startingPoint = {
-  x: boardConfig.xOffset + 16,
-  y: (32 * 20) + (50 - 16)
-}
-
-const createNewPlayer = (players, socket, status, light, gameId) => {
-  var number;
-  var keys = Object.keys(players);
-  var count = keys.length
-
-  if(count == 0) {
+const createNewPlayer = async (io, socket, playerId, roomId) => {
+  // assign game number
+  const room = await getRoom(roomId)
+  const players = room.players
+  let number
+  if(!players) {
     number = 1
+    room.players = [{ playerId, number }]
   } else {
-    number = players[keys[count - 1]].number + 1
+    number = players[players.length - 1].number + 1
+    room.players.push({ playerId, number })
   }
 
-  players[socket.id] = {
-    playerId: socket.id,
-    number,
-    x: startingPoint.x,
-    y: startingPoint.y,
-    boardX: 0,
-    boardY: 20,
-    bombs,
-    gameStatus: status,
-    gameLight: light,
-    gameId,
-  }
-
-  // send the players object to the new player
-  socket.emit('currentPlayers', players);
-  // update all other players of the new player
-  socket.broadcast.emit('newPlayer', players[socket.id]);
+  logger.info(`Assigning number "${number}" to player:${playerId}`)
+  const player = await patchPlayerByRoom(playerId, roomId, { number })
+  await updateRoom(roomId, room);
+  
+  const playersInfo = await getPlayersByRoom(roomId)
+  socket.emit('currentPlayers', playersInfo)
+  io.to(roomId).emit('newPlayer', player)
 }
 
-const reconnectPlayer = function(players, dcPlayers, number, socket, status, light, gameId) {
-  var retrievedData = dcPlayers[number]
+const reconnectPlayer = async (io, socket, playerId, roomId) => {
+  const playerInfo = await getPlayerByRoom(playerId, roomId)
+  const playersInfo = await getPlayersByRoom(roomId)
 
-  players[socket.id] = retrievedData
-  players[socket.id].playerId = socket.id
-  players[socket.id].gameStatus = status
-  players[socket.id].gameLight = light
-  players[socket.id].gameId = gameId
-
-  // send the players object to the new player
-  socket.emit('currentPlayers', players);
-  // update all other players of the new player
-  socket.broadcast.emit('newPlayer', players[socket.id]);
-
+  socket.emit('currentPlayers', playersInfo)
+  io.to(roomId).emit('newPlayer', playerInfo)
 }
 
 module.exports = {
   createNewPlayer,
-  reconnectPlayer
+  reconnectPlayer,
 }

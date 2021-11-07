@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "watch": "npx babel --watch src --out-dir ./public/js --presets react-app/prod",
+    "redis": "docker run --name some-redis -p 6379:6379 redis"
   },
   "author": "",
   "license": "ISC",
@@ -15,6 +17,7 @@
     "express": "^4.17.1",
     "randomstring": "^1.2.1",
     "redis": "^4.0.0-rc.3",
-    "socket.io": "^4.3.0"
+    "socket.io": "^4.3.0",
+    "winston": "^3.3.3"
   }
 }
