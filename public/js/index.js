@@ -89,7 +89,6 @@ var HomeComponent = function (_React$Component) {
       }).then(function (response) {
         return response.json();
       }).then(function (data) {
-        console.log(data);
 
         if (data.roomId > 0) {
           localStorage.setItem('roomId', data.roomId);

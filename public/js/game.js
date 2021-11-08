@@ -199,7 +199,6 @@ var GameScene = new Phaser.Class({
     })
 
     this.socket.on('currentPlayers', (players) => {
-      console.log('currentPlayers', players)
       players.forEach(player => {
         if(player.playerId === playerId) { // me
           this.addPlayer(player)

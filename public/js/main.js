@@ -66,7 +66,6 @@ function initMain() {
     .then(data => {
       if(Object.keys(data).length === 0) {
         // initialise player
-        console.log('initialise player')
         createPlayer()
       } else {
         if (!data.shape) {

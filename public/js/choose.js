@@ -7,7 +7,6 @@ var ChooseScene = new Phaser.Class({
     Phaser.Scene.call(this, { key: 'chooseScene' })
   },
   preload: function() {
-    console.log('preload Choose')
     this.load.image('circle', '/assets/circle.png');
     this.load.image('triangle', '/assets/triangle.png');
     this.load.image('square', '/assets/square.png');
@@ -120,7 +119,6 @@ var ChooseScene = new Phaser.Class({
     })
       .then(response => response.json())
       .then(data => {
-        console.log(data)
         this.scene.start('gameScene')
       })
   }

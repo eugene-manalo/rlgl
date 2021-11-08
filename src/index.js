@@ -67,8 +67,6 @@ class HomeComponent extends React.Component {
     })
       .then(response => response.json())
       .then(data => {
-        console.log(data)
-
         if(data.roomId > 0) {
           localStorage.setItem('roomId', data.roomId)
           window.location.href = `/game/${data.roomId}`
