@@ -4,3 +4,5 @@ docker start some-redis
 
 watch babel
 npx babel --watch src --out-dir ./public/js --presets react-app/prod
+
+ssh -i "rlgl-kp.pem" ec2-user@ec2-13-229-122-138.ap-southeast-1.compute.amazonaws.com

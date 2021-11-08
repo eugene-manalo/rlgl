@@ -12,7 +12,7 @@ const RoomTimer = function (io, id) {
       io.to(id).emit('timer', this.countdown)
     } else if (this.countdown <= 0) {
       clearInterval(this.timer)
-      patchRoom(roomId, { status: END })
+      patchRoom(id, { status: END })
       io.to(id).emit('timeout')
     }
   }, 1000)
