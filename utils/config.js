@@ -1,4 +1,5 @@
 const ALIVE = 'ALIVE'
+const WAITING = 'WAITING'
 
 const newPlayerConfig = {
   playerId: 0,
@@ -12,5 +13,6 @@ const newPlayerConfig = {
 }
 
 module.exports = {
-  newPlayerConfig
+  newPlayerConfig,
+  WAITING
 }

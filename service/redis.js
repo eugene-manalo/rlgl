@@ -1,7 +1,6 @@
 var redis = require("redis");
 var randomstring = require("randomstring");
-var roomUtil = require('../utils/room')
-var { newPlayerConfig } = require('../utils/config');
+var { newPlayerConfig, WAITING } = require('../utils/config');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -20,7 +19,6 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const client = redis.createClient()
-const { WAITING } = roomUtil
 const EXPIRY_OPTION =  {
   EX: 60 * 60 // 30 mins
 }
